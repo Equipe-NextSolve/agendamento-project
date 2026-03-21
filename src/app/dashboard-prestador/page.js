@@ -1,158 +1,227 @@
 "use client";
-import { useState } from "react";
+
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { ContentConteiner } from "@/components/ContentConteiner";
+import ProviderServiceForm from "@/components/forms/ProviderServiceForm";
+import { RoleGuard } from "@/components/RoleGuard";
 import { Card } from "@/components/ui/card";
-import { FormField, fieldClassName } from "@/components/ui/form-field";
-import { PrimaryButton } from "@/components/ui/primary-button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { providerAgenda, serviceList } from "@/mock-data";
-import { auth } from "@/lib/firebase";
-import { criarServico } from "@/lib/dbService";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import {
+  deletarServico,
+  listarAgendaDoPrestador,
+  listarServicosPorPrestador,
+} from "@/lib/dbService";
 
+const today = new Date().toISOString().split("T")[0];
 
-export default function DashboardPrestador() {
-  const [nome, setNome] = useState("");
-  const [duracao, setDuracao] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [disponibilidade, setDisponibilidade] = useState("");
+function DashboardPrestadorContent() {
+  const { user, loading } = useCurrentUser();
+  const [services, setServices] = useState([]);
+  const [agenda, setAgenda] = useState([]);
+  const [editingService, setEditingService] = useState(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [deletingServiceId, setDeletingServiceId] = useState("");
+  const [error, setError] = useState("");
 
-  const handleCriarServico = async (e) => {
-    e.preventDefault();
-  
-
-    const usuarioLogado = auth.currentUser
-    if(!usuarioLogado) {
-      alert("Sua sessão Expirou. Faça Login novamente.");
+  const carregarDados = useCallback(async (prestadorId) => {
+    if (!prestadorId) {
+      setServices([]);
+      setAgenda([]);
+      setIsLoadingData(false);
       return;
     }
-  
-    const resultado = await criarServico(
-      usuarioLogado.uid,
-      nome,
-      duracao,
-      descricao,
-      disponibilidade
-    );
 
-    if(resultado.sucesso) {
-      alert("Serviço publicado com sucesso!");
-      setNome("");
-      setDuracao("");
-      setDescricao("");
-      setDisponibilidade("");
-    } else {
-      alert("Erro ao publicar: " + resultado.erro);
+    setIsLoadingData(true);
+    setError("");
+
+    const [servicosResult, agendaResult] = await Promise.all([
+      listarServicosPorPrestador(prestadorId),
+      listarAgendaDoPrestador(prestadorId, today),
+    ]);
+
+    if (!servicosResult.sucesso) {
+      setError(servicosResult.erro || "Nao foi possivel carregar os servicos.");
+      setServices([]);
+      setAgenda([]);
+      setIsLoadingData(false);
+      return;
     }
-};
-  
+
+    if (!agendaResult.sucesso) {
+      setError(agendaResult.erro || "Nao foi possivel carregar a agenda.");
+      setServices(servicosResult.servicos);
+      setAgenda([]);
+      setIsLoadingData(false);
+      return;
+    }
+
+    setServices(servicosResult.servicos);
+    setAgenda(agendaResult.agenda);
+    setIsLoadingData(false);
+  }, []);
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    carregarDados(user?.id);
+  }, [carregarDados, loading, user?.id]);
+
+  const handleDelete = async (serviceId) => {
+    if (!user?.id) {
+      toast.error("Sua sessao expirou. Faca login novamente.");
+      return;
+    }
+
+    setDeletingServiceId(serviceId);
+    const resultado = await deletarServico(serviceId, user.id);
+    setDeletingServiceId("");
+
+    if (!resultado.sucesso) {
+      toast.error(`Erro ao excluir: ${resultado.erro}`);
+      return;
+    }
+
+    if (editingService?.id === serviceId) {
+      setEditingService(null);
+    }
+
+    toast.success("Servico excluido com sucesso.");
+    carregarDados(user.id);
+  };
+
+  return (
+    <div className="flex w-full flex-col gap-4 lg:flex-row">
+      <Card className="lg:flex-1">
+        <h2 className="text-lg font-semibold">
+          {editingService ? "Editar servico" : "Cadastrar novo servico"}
+        </h2>
+        <ProviderServiceForm
+          initialData={editingService}
+          onCancel={() => setEditingService(null)}
+          onSuccess={() => {
+            setEditingService(null);
+            carregarDados(user?.id);
+          }}
+        />
+      </Card>
+
+      <div className="flex flex-1 flex-col gap-4">
+        <Card>
+          <h2 className="text-lg font-semibold">Servicos publicados</h2>
+
+          {loading || isLoadingData
+            ? <p className="text-sm text-bluelight">Carregando servicos...</p>
+            : error
+              ? <p className="text-sm text-red-600">{error}</p>
+              : !services.length
+                ? <p className="text-sm text-bluelight">
+                    Nenhum servico publicado por este prestador.
+                  </p>
+                : <div className="flex w-full flex-col gap-3">
+                    {services.map((service) => (
+                      <div
+                        className="flex w-full flex-col gap-3 rounded-lg border border-bluelight/20 p-3"
+                        key={service.id}
+                      >
+                        <div className="flex w-full flex-col gap-1">
+                          <strong className="text-sm">{service.name}</strong>
+                          <span className="text-sm text-bluelight">
+                            Duracao: {service.duration}
+                          </span>
+                          <span className="text-sm text-bluedark">
+                            {service.description}
+                          </span>
+                          {service.availabilitySummary
+                            ? <span className="text-sm text-bluedark">
+                                Disponibilidade: {service.availabilitySummary}
+                              </span>
+                            : null}
+                          <span className="text-xs text-bluelight">
+                            {service.active ? "Publicado" : "Inativo"}
+                          </span>
+                        </div>
+
+                        <div className="flex w-full flex-col gap-2 md:flex-row">
+                          <button
+                            className="inline-flex h-10 items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:bg-greendark hover:text-white"
+                            type="button"
+                            onClick={() => setEditingService(service)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            className="inline-flex h-10 items-center justify-center rounded-lg border border-red-500 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={deletingServiceId === service.id}
+                            type="button"
+                            onClick={() => handleDelete(service.id)}
+                          >
+                            {deletingServiceId === service.id
+                              ? "Excluindo..."
+                              : "Excluir"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>}
+        </Card>
+
+        <Card>
+          <h2 className="text-lg font-semibold">Agenda de hoje</h2>
+
+          {loading || isLoadingData
+            ? <p className="text-sm text-bluelight">Carregando agenda...</p>
+            : error
+              ? <p className="text-sm text-red-600">{error}</p>
+              : !agenda.length
+                ? <p className="text-sm text-bluelight">
+                    Nenhum agendamento encontrado para hoje.
+                  </p>
+                : <div className="flex w-full flex-col gap-3">
+                    {agenda.map((item) => (
+                      <div
+                        className="flex w-full flex-col gap-3 rounded-lg border border-bluelight/20 p-3 md:flex-row md:items-center"
+                        key={item.id}
+                      >
+                        <div className="flex flex-1 flex-col gap-1">
+                          <strong className="text-sm">{item.customer}</strong>
+                          <span className="text-sm text-bluelight">
+                            {item.service}
+                          </span>
+                          <span className="text-sm text-bluedark">
+                            {item.date} as {item.time}
+                          </span>
+                          {item.pet
+                            ? <span className="text-sm text-bluedark">
+                                Pet: {item.pet}
+                              </span>
+                            : null}
+                        </div>
+                        <StatusBadge value={item.status} />
+                      </div>
+                    ))}
+                  </div>}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardPrestador() {
   return (
     <ContentConteiner
       subtitle="Gestao de servicos, disponibilidade semanal e agenda do prestador."
       title="Dashboard do prestador"
     >
-      <div className="flex w-full flex-col gap-4 lg:flex-row">
-        <Card className="lg:flex-1">
-          <h2 className="text-lg font-semibold">Cadastrar novo servico</h2>
-          <form onSubmit={handleCriarServico} className="flex w-full flex-col gap-4">
-            <FormField htmlFor="service-name" label="Nome do servico">
-              <input
-                className={fieldClassName()}
-                id="service-name"
-                type="text"
-                required
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-              />
-            </FormField>
-
-            <FormField htmlFor="service-duration" label="Duracao">
-              <input
-                className={fieldClassName()}
-                id="service-duration"
-                type="text"
-                required
-                value={duracao}
-                onChange={(e) => setDuracao(e.target.value)}
-              />
-            </FormField>
-
-            <FormField htmlFor="service-description" label="Descricao">
-              <textarea
-                className="w-full rounded-lg border border-bluelight/30 bg-white text-sm text-bluedark outline-none focus:border-greendark"
-                id="service-description"
-                rows={4}
-                required
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-              />
-            </FormField>
-
-            <FormField htmlFor="availability" label="Disponibilidade">
-              <select
-                className={fieldClassName()}
-                id="availability"
-                required
-                value={disponibilidade}
-                onChange={(e) => setDisponibilidade(e.target.value)}
-              >
-                <option disabled value="">
-                  Selecione um turno
-                </option>
-                <option>Seg a Sex - Manha</option>
-                <option>Seg a Sex - Tarde</option>
-                <option>Sabado - Manha</option>
-              </select>
-            </FormField>
-
-            <PrimaryButton type="submit">Salvar servico</PrimaryButton>
-          </form>
-        </Card>
-
-        <div className="flex flex-1 flex-col gap-4">
-          <Card>
-            <h2 className="text-lg font-semibold">Servicos publicados</h2>
-            <div className="flex w-full flex-col gap-3">
-              {serviceList.map((service) => (
-                <div
-                  className="flex w-full flex-col gap-1 p-3 rounded-lg border border-bluelight/20"
-                  key={service.id}
-                >
-                  <strong className="text-sm">{service.name}</strong>
-                  <span className="text-sm text-bluelight">
-                    {service.duration}
-                  </span>
-                  <span className="text-sm text-bluedark">
-                    {service.description}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card>
-            <h2 className="text-lg font-semibold">Agenda de hoje</h2>
-            <div className="flex w-full flex-col gap-3">
-              {providerAgenda.map((item) => (
-                <div
-                  className="flex w-full flex-col gap-3 p-3 rounded-lg border border-bluelight/20 md:flex-row md:items-center"
-                  key={item.id}
-                >
-                  <div className="flex flex-1 flex-col gap-1">
-                    <strong className="text-sm">{item.customer}</strong>
-                    <span className="text-sm text-bluelight">
-                      {item.service}
-                    </span>
-                    <span className="text-sm text-bluedark">
-                      {item.date} as {item.time}
-                    </span>
-                  </div>
-                  <StatusBadge value={item.status} />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </div>
+      <RoleGuard
+        allowedRoles={["prestador"]}
+        unauthorizedMessage="O dashboard do prestador e exclusivo para contas de prestador."
+      >
+        <DashboardPrestadorContent />
+      </RoleGuard>
     </ContentConteiner>
   );
 }
