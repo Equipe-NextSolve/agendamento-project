@@ -2,7 +2,7 @@ const badgeStyles = {
   confirmado: "bg-greendark text-white",
   pendente: "bg-greenlight text-bluedark",
   concluido: "bg-bluelight text-white",
-  cancelado: "bg-bluedark text-white",
+  cancelado: "bg-red-200 text-red-800",
 };
 
 export function StatusBadge({ value }) {

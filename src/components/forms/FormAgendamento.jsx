@@ -7,11 +7,13 @@ import { FormField, fieldClassName } from "@/components/ui/form-field";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
+  addMinutesToTime,
+  doesTimeRangeFitAvailability,
   getAvailabilityForDate,
   isDateAvailable,
-  isTimeWithinAvailability,
 } from "@/lib/availability";
-import { criarAgendamento, listarServicosAtivos } from "@/lib/dbService";
+import { criarAgendamento } from "@/lib/firebase/firestore/agendamentos";
+import { listarServicosAtivos } from "@/lib/firebase/firestore/services";
 import { agendamentoSchema } from "@/lib/formSchemas";
 
 const initialValues = {
@@ -91,6 +93,13 @@ export default function FormAgendamento() {
     () => getAvailabilityForDate(selectedService?.availability, values.date),
     [selectedService?.availability, values.date],
   );
+  const appointmentEndTime = useMemo(() => {
+    if (!selectedService?.duration || !values.time) {
+      return "";
+    }
+
+    return addMinutesToTime(values.time, selectedService.duration);
+  }, [selectedService?.duration, values.time]);
 
   const handleChange = (field, value) => {
     setValues((current) => ({ ...current, [field]: value }));
@@ -128,14 +137,15 @@ export default function FormAgendamento() {
     }
 
     if (
-      !isTimeWithinAvailability(
+      !doesTimeRangeFitAvailability(
         selectedService.availability,
         parsed.data.date,
         parsed.data.time,
+        selectedService.duration,
       )
     ) {
       toast.error(
-        "Escolha um horario dentro da disponibilidade configurada pelo prestador.",
+        "Escolha um horario cujo intervalo completo caiba na disponibilidade configurada pelo prestador.",
       );
       return;
     }
@@ -202,7 +212,7 @@ export default function FormAgendamento() {
           <p className="text-sm text-bluelight">{selectedService.provider}</p>
           {selectedService.duration ? (
             <p className="text-sm text-bluedark">
-              Duracao: {selectedService.duration}
+              Duracao: {selectedService.duration} min
             </p>
           ) : null}
           {selectedService.availabilitySummary ? (
@@ -242,11 +252,16 @@ export default function FormAgendamento() {
       </div>
 
       {values.date && selectedService ? (
-        <p className="text-sm text-bluelight">
-          {selectedDayAvailability?.enabled
-            ? `Horario disponivel neste dia: ${selectedDayAvailability.start} - ${selectedDayAvailability.end}`
-            : "O prestador nao atende no dia selecionado."}
-        </p>
+        <div className="flex flex-col gap-1 text-sm text-bluelight">
+          <p>
+            {selectedDayAvailability?.enabled
+              ? `Horario disponivel neste dia: ${selectedDayAvailability.start} - ${selectedDayAvailability.end}`
+              : "O prestador nao atende no dia selecionado."}
+          </p>
+          {appointmentEndTime ? (
+            <p>Fim previsto do atendimento: {appointmentEndTime}</p>
+          ) : null}
+        </div>
       ) : null}
 
       <FormField htmlFor="pet" label="Nome do pet">

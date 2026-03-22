@@ -20,40 +20,6 @@ export function createDefaultAvailability() {
   }));
 }
 
-function legacyAvailabilityToSchedule(value) {
-  const schedule = createDefaultAvailability();
-
-  if (value === "Seg a Sex - Manha") {
-    return schedule.map((item) =>
-      ["monday", "tuesday", "wednesday", "thursday", "friday"].includes(
-        item.day,
-      )
-        ? { ...item, enabled: true, start: "08:00", end: "12:00" }
-        : item,
-    );
-  }
-
-  if (value === "Seg a Sex - Tarde") {
-    return schedule.map((item) =>
-      ["monday", "tuesday", "wednesday", "thursday", "friday"].includes(
-        item.day,
-      )
-        ? { ...item, enabled: true, start: "13:00", end: "18:00" }
-        : item,
-    );
-  }
-
-  if (value === "Sabado - Manha") {
-    return schedule.map((item) =>
-      item.day === "saturday"
-        ? { ...item, enabled: true, start: "08:00", end: "12:00" }
-        : item,
-    );
-  }
-
-  return schedule;
-}
-
 export function normalizeAvailability(value) {
   if (Array.isArray(value)) {
     const defaults = createDefaultAvailability();
@@ -70,10 +36,6 @@ export function normalizeAvailability(value) {
           }
         : defaultDay;
     });
-  }
-
-  if (typeof value === "string") {
-    return legacyAvailabilityToSchedule(value);
   }
 
   return createDefaultAvailability();
@@ -130,4 +92,68 @@ export function isTimeWithinAvailability(availability, dateString, timeString) {
   }
 
   return timeString >= entry.start && timeString <= entry.end;
+}
+
+export function timeToMinutes(timeString) {
+  if (!timeString || !timeString.includes(":")) {
+    return null;
+  }
+
+  const [hours, minutes] = timeString.split(":").map(Number);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+export function minutesToTime(totalMinutes) {
+  if (!Number.isFinite(totalMinutes)) {
+    return "";
+  }
+
+  const normalizedMinutes = Math.max(0, totalMinutes);
+  const hours = String(Math.floor(normalizedMinutes / 60)).padStart(2, "0");
+  const minutes = String(normalizedMinutes % 60).padStart(2, "0");
+
+  return `${hours}:${minutes}`;
+}
+
+export function addMinutesToTime(timeString, durationInMinutes) {
+  const startMinutes = timeToMinutes(timeString);
+
+  if (startMinutes === null || !Number.isFinite(durationInMinutes)) {
+    return "";
+  }
+
+  return minutesToTime(startMinutes + durationInMinutes);
+}
+
+export function doesTimeRangeFitAvailability(
+  availability,
+  dateString,
+  startTime,
+  durationInMinutes,
+) {
+  const entry = getAvailabilityForDate(availability, dateString);
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes =
+    startMinutes === null || !Number.isFinite(durationInMinutes)
+      ? null
+      : startMinutes + durationInMinutes;
+  const availabilityStart = timeToMinutes(entry?.start);
+  const availabilityEnd = timeToMinutes(entry?.end);
+
+  if (
+    !entry?.enabled ||
+    startMinutes === null ||
+    endMinutes === null ||
+    availabilityStart === null ||
+    availabilityEnd === null
+  ) {
+    return false;
+  }
+
+  return startMinutes >= availabilityStart && endMinutes <= availabilityEnd;
 }

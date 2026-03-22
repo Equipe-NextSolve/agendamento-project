@@ -6,7 +6,8 @@ import { useEffect, useState } from "react";
 import { ContentConteiner } from "@/components/ContentConteiner";
 import { Card } from "@/components/ui/card";
 import { getAvailabilityForDate, WEEK_DAYS } from "@/lib/availability";
-import { buscarServicoPorId, listarHorariosOcupados } from "@/lib/dbService";
+import { listarHorariosOcupados } from "@/lib/firebase/firestore/agendamentos";
+import { buscarServicoPorId } from "@/lib/firebase/firestore/services";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -140,7 +141,7 @@ export default function DetalheServicoPrestador() {
           <h2 className="text-xl font-semibold">{service.provider}</h2>
           <p className="text-sm text-bluedark">{service.description}</p>
           <span className="text-sm text-bluelight">
-            Duracao: {service.duration}
+            Duracao: {service.duration} min
           </span>
           {service.availabilitySummary
             ? <span className="text-sm text-bluedark">

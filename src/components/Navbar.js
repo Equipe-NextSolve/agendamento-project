@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { logoutUsuario } from "@/lib/authService";
+import { logoutUsuario } from "@/lib/firebase/auth";
 
 const linksByProfile = {
   admin: [

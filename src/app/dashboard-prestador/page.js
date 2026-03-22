@@ -9,10 +9,13 @@ import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
-  deletarServico,
+  atualizarStatusAgendamentoPrestador,
   listarAgendaDoPrestador,
+} from "@/lib/firebase/firestore/agendamentos";
+import {
+  deletarServico,
   listarServicosPorPrestador,
-} from "@/lib/dbService";
+} from "@/lib/firebase/firestore/services";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -23,6 +26,8 @@ function DashboardPrestadorContent() {
   const [editingService, setEditingService] = useState(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [deletingServiceId, setDeletingServiceId] = useState("");
+  const [updatingAppointmentId, setUpdatingAppointmentId] = useState("");
+  const [statusDrafts, setStatusDrafts] = useState({});
   const [error, setError] = useState("");
 
   const carregarDados = useCallback(async (prestadorId) => {
@@ -93,6 +98,44 @@ function DashboardPrestadorContent() {
     carregarDados(user.id);
   };
 
+  const handleStatusDraftChange = (appointmentId, status) => {
+    setStatusDrafts((current) => ({
+      ...current,
+      [appointmentId]: status,
+    }));
+  };
+
+  const handleStatusSave = async (appointmentId, currentStatus) => {
+    if (!user?.id) {
+      toast.error("Sua sessao expirou. Faca login novamente.");
+      return;
+    }
+
+    const nextStatus = statusDrafts[appointmentId] || currentStatus;
+
+    if (nextStatus === currentStatus) {
+      return;
+    }
+
+    setUpdatingAppointmentId(appointmentId);
+
+    const resultado = await atualizarStatusAgendamentoPrestador(
+      appointmentId,
+      user.id,
+      nextStatus,
+    );
+
+    setUpdatingAppointmentId("");
+
+    if (!resultado.sucesso) {
+      toast.error(`Erro ao atualizar status: ${resultado.erro}`);
+      return;
+    }
+
+    toast.success("Status do agendamento atualizado.");
+    carregarDados(user.id);
+  };
+
   return (
     <div className="flex w-full flex-col gap-4 lg:flex-row">
       <Card className="lg:flex-1">
@@ -130,7 +173,7 @@ function DashboardPrestadorContent() {
                         <div className="flex w-full flex-col gap-1">
                           <strong className="text-sm">{service.name}</strong>
                           <span className="text-sm text-bluelight">
-                            Duracao: {service.duration}
+                            Duracao: {service.duration} min
                           </span>
                           <span className="text-sm text-bluedark">
                             {service.description}
@@ -200,7 +243,41 @@ function DashboardPrestadorContent() {
                               </span>
                             : null}
                         </div>
-                        <StatusBadge value={item.status} />
+                        <div className="flex w-full flex-col gap-2 md:w-52">
+                          <StatusBadge value={item.status} />
+                          <select
+                            className="h-10 w-full rounded-lg border border-bluelight/30 bg-white px-3 text-sm text-bluedark outline-none focus:border-greendark"
+                            disabled={updatingAppointmentId === item.id}
+                            value={statusDrafts[item.id] || item.status}
+                            onChange={(event) =>
+                              handleStatusDraftChange(
+                                item.id,
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="confirmado">confirmado</option>
+                            <option value="pendente">pendente</option>
+                            <option value="concluido">concluido</option>
+                            <option value="cancelado">cancelado</option>
+                          </select>
+                          <button
+                            className="inline-flex h-10 items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:bg-greendark hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={
+                              updatingAppointmentId === item.id ||
+                              (statusDrafts[item.id] || item.status) ===
+                                item.status
+                            }
+                            type="button"
+                            onClick={() =>
+                              handleStatusSave(item.id, item.status)
+                            }
+                          >
+                            {updatingAppointmentId === item.id
+                              ? "Salvando..."
+                              : "Salvar status"}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>}

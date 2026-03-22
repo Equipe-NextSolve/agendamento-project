@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { ContentConteiner } from "@/components/ContentConteiner";
 import { RoleGuard } from "@/components/RoleGuard";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { listarAgendamentosPorUsuario } from "@/lib/dbService";
+import {
+  atualizarStatusAgendamentoPrestador,
+  listarAgendamentosPorUsuario,
+} from "@/lib/firebase/firestore/agendamentos";
 
 const copyByRole = {
   cliente: {
@@ -27,6 +31,8 @@ function AppointmentList() {
   const { user, loading } = useCurrentUser();
   const [appointments, setAppointments] = useState([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
+  const [statusDrafts, setStatusDrafts] = useState({});
+  const [updatingAppointmentId, setUpdatingAppointmentId] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -65,6 +71,7 @@ function AppointmentList() {
       }
 
       setAppointments(resultado.agendamentos);
+      setStatusDrafts({});
       setIsLoadingAppointments(false);
     };
 
@@ -113,6 +120,67 @@ function AppointmentList() {
 
   const counterpartField =
     user.perfil === "prestador" ? "customer" : "provider";
+  const isProviderView = user.perfil === "prestador";
+
+  const reloadAppointments = async () => {
+    if (!user?.id || !copyByRole[user.perfil]) {
+      return;
+    }
+
+    setIsLoadingAppointments(true);
+    setError("");
+
+    const resultado = await listarAgendamentosPorUsuario(user.id, user.perfil);
+
+    if (!resultado.sucesso) {
+      setAppointments([]);
+      setError(resultado.erro || "Nao foi possivel carregar os agendamentos.");
+      setIsLoadingAppointments(false);
+      return;
+    }
+
+    setAppointments(resultado.agendamentos);
+    setStatusDrafts({});
+    setIsLoadingAppointments(false);
+  };
+
+  const handleStatusDraftChange = (appointmentId, status) => {
+    setStatusDrafts((current) => ({
+      ...current,
+      [appointmentId]: status,
+    }));
+  };
+
+  const handleStatusSave = async (appointmentId, currentStatus) => {
+    if (!user?.id) {
+      toast.error("Sua sessao expirou. Faca login novamente.");
+      return;
+    }
+
+    const nextStatus = statusDrafts[appointmentId] || currentStatus;
+
+    if (nextStatus === currentStatus) {
+      return;
+    }
+
+    setUpdatingAppointmentId(appointmentId);
+
+    const resultado = await atualizarStatusAgendamentoPrestador(
+      appointmentId,
+      user.id,
+      nextStatus,
+    );
+
+    setUpdatingAppointmentId("");
+
+    if (!resultado.sucesso) {
+      toast.error(`Erro ao atualizar status: ${resultado.erro}`);
+      return;
+    }
+
+    toast.success("Status do agendamento atualizado.");
+    reloadAppointments();
+  };
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -132,7 +200,43 @@ function AppointmentList() {
                 Codigo: {appointment.id}
               </span>
             </div>
-            <StatusBadge value={appointment.status} />
+            {isProviderView
+              ? <div className="flex w-full flex-col gap-2 md:w-52">
+                  <StatusBadge value={appointment.status} />
+                  <select
+                    className="h-10 w-full rounded-lg border border-bluelight/30 bg-white px-3 text-sm text-bluedark outline-none focus:border-greendark"
+                    disabled={updatingAppointmentId === appointment.id}
+                    value={statusDrafts[appointment.id] || appointment.status}
+                    onChange={(event) =>
+                      handleStatusDraftChange(
+                        appointment.id,
+                        event.target.value,
+                      )
+                    }
+                  >
+                    <option value="confirmado">confirmado</option>
+                    <option value="pendente">pendente</option>
+                    <option value="concluido">concluido</option>
+                    <option value="cancelado">cancelado</option>
+                  </select>
+                  <button
+                    className="inline-flex h-10 items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:bg-greendark hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={
+                      updatingAppointmentId === appointment.id ||
+                      (statusDrafts[appointment.id] || appointment.status) ===
+                        appointment.status
+                    }
+                    type="button"
+                    onClick={() =>
+                      handleStatusSave(appointment.id, appointment.status)
+                    }
+                  >
+                    {updatingAppointmentId === appointment.id
+                      ? "Salvando..."
+                      : "Salvar status"}
+                  </button>
+                </div>
+              : <StatusBadge value={appointment.status} />}
           </div>
         </Card>
       ))}

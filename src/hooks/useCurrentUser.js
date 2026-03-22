@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onUserChange } from "@/lib/authService";
+import { onUserChange } from "@/lib/firebase/auth";
 
 export function useCurrentUser() {
   const [user, setUser] = useState(null);

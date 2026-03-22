@@ -5,7 +5,7 @@ import { ContentConteiner } from "@/components/ContentConteiner";
 import { RoleGuard } from "@/components/RoleGuard";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { listarTodosAgendamentos } from "@/lib/dbService";
+import { listarTodosAgendamentos } from "@/lib/firebase/firestore/agendamentos";
 
 export default function AdminPage() {
   const [status, setStatus] = useState("Todos");

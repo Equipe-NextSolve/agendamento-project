@@ -5,8 +5,11 @@ import { toast } from "react-toastify";
 import { FormField, fieldClassName } from "@/components/ui/form-field";
 import { PrimaryButton } from "@/components/ui/primary-button";
 import { normalizeAvailability, WEEK_DAYS } from "@/lib/availability";
-import { atualizarServico, criarServico } from "@/lib/dbService";
 import { auth } from "@/lib/firebase";
+import {
+  atualizarServico,
+  criarServico,
+} from "@/lib/firebase/firestore/services";
 import { providerServiceSchema } from "@/lib/formSchemas";
 
 const initialValues = {
@@ -43,7 +46,7 @@ export default function ProviderServiceForm({
 
     setValues({
       nome: initialData.name || "",
-      duracao: initialData.duration || "",
+      duracao: String(initialData.duration || ""),
       descricao: initialData.description || "",
       disponibilidade: normalizeAvailability(initialData.availability),
     });
@@ -134,11 +137,13 @@ export default function ProviderServiceForm({
         <FieldError message={errors.nome?.[0]} />
       </FormField>
 
-      <FormField htmlFor="service-duration" label="Duracao">
+      <FormField htmlFor="service-duration" label="Duracao em minutos">
         <input
           className={fieldClassName()}
           id="service-duration"
-          type="text"
+          min="1"
+          step="1"
+          type="number"
           value={values.duracao}
           onChange={(event) => handleChange("duracao", event.target.value)}
         />

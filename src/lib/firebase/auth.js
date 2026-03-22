@@ -3,8 +3,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { auth } from "./client";
+import { buscarUsuarioPorId, criarDocumentoUsuario } from "./firestore/users";
 
 export const cadastrarUsuario = async (nome, email, senha, perfil) => {
   try {
@@ -15,17 +15,16 @@ export const cadastrarUsuario = async (nome, email, senha, perfil) => {
     );
     const user = userCredential.user;
 
-    // Salva o documento na coleção 'usuarios' no Firestore
-    await setDoc(doc(db, "usuarios", user.uid), {
-      nome: nome,
-      email: email,
-      perfil: perfil,
-      criadoEm: new Date(),
+    await criarDocumentoUsuario({
+      uid: user.uid,
+      nome,
+      email,
+      perfil,
     });
 
     return { sucesso: true, user };
   } catch (erro) {
-    console.error("Erro ao cadastrar usuário:", erro);
+    console.error("Erro ao cadastrar usuario:", erro);
     return { sucesso: false, erro: erro.message };
   }
 };
@@ -58,16 +57,10 @@ export const onUserChange = (callback) => {
     }
 
     try {
-      const docRef = doc(db, "usuarios", firebaseUser.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        callback({ id: firebaseUser.uid, ...docSnap.data() });
-      } else {
-        callback(null);
-      }
+      const usuario = await buscarUsuarioPorId(firebaseUser.uid);
+      callback(usuario);
     } catch (erro) {
-      console.error("Erro ao buscar usuário atual:", erro);
+      console.error("Erro ao buscar usuario atual:", erro);
       callback(null);
     }
   });

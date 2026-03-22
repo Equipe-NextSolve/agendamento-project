@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ContentConteiner } from "@/components/ContentConteiner";
 import { Card } from "@/components/ui/card";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { listarServicosAtivos } from "@/lib/dbService";
+import { listarServicosAtivos } from "@/lib/firebase/firestore/services";
 
 export default function ListagemServicos() {
   const router = useRouter();
@@ -152,7 +152,7 @@ export default function ListagemServicos() {
                           {service.description}
                         </p>
                         <span className="text-sm font-semibold text-greendark">
-                          Duracao: {service.duration}
+                          Duracao: {service.duration} min
                         </span>
                         {service.availabilitySummary
                           ? <span className="text-sm text-bluedark">

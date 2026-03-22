@@ -37,7 +37,13 @@ export const providerServiceSchema = z
       .string()
       .trim()
       .min(3, "Informe o nome do servico com pelo menos 3 caracteres."),
-    duracao: z.string().trim().min(2, "Informe a duracao do servico."),
+    duracao: z.coerce
+      .number({
+        invalid_type_error: "Informe a duracao em minutos.",
+      })
+      .int("Informe a duracao em minutos inteiros.")
+      .min(1, "Informe ao menos 1 minuto.")
+      .max(1440, "A duracao maxima permitida e de 1440 minutos."),
     descricao: z
       .string()
       .trim()

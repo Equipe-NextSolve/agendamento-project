@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { FormField, fieldClassName } from "@/components/ui/form-field";
 import { PrimaryButton } from "@/components/ui/primary-button";
-import { loginUsuario } from "@/lib/authService";
+import { loginUsuario } from "@/lib/firebase/auth";
 import { loginSchema } from "@/lib/formSchemas";
 
 const initialValues = {
