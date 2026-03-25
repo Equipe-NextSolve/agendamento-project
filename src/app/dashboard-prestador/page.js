@@ -6,8 +6,10 @@ import { ContentConteiner } from "@/components/ContentConteiner";
 import ProviderServiceForm from "@/components/forms/ProviderServiceForm";
 import { RoleGuard } from "@/components/RoleGuard";
 import { Card } from "@/components/ui/card";
+import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { getLocalDateString } from "@/lib/date";
 import {
   atualizarStatusAgendamentoPrestador,
   listarAgendaDoPrestador,
@@ -17,7 +19,7 @@ import {
   listarServicosPorPrestador,
 } from "@/lib/firebase/firestore/services";
 
-const today = new Date().toISOString().split("T")[0];
+const today = getLocalDateString();
 
 function DashboardPrestadorContent() {
   const { user, loading } = useCurrentUser();
@@ -47,7 +49,7 @@ function DashboardPrestadorContent() {
     ]);
 
     if (!servicosResult.sucesso) {
-      setError(servicosResult.erro || "Nao foi possivel carregar os servicos.");
+      setError(serviçosResult.erro || "Nao foi possivel carregar os serviços.");
       setServices([]);
       setAgenda([]);
       setIsLoadingData(false);
@@ -140,7 +142,7 @@ function DashboardPrestadorContent() {
     <div className="flex w-full flex-col gap-4 lg:flex-row">
       <Card className="lg:flex-1">
         <h2 className="text-lg font-semibold">
-          {editingService ? "Editar servico" : "Cadastrar novo servico"}
+          {editingService ? "Editar serviço" : "Cadastrar novo serviço"}
         </h2>
         <ProviderServiceForm
           initialData={editingService}
@@ -157,12 +159,12 @@ function DashboardPrestadorContent() {
           <h2 className="text-lg font-semibold">Servicos publicados</h2>
 
           {loading || isLoadingData
-            ? <p className="text-sm text-bluelight">Carregando servicos...</p>
+            ? <p className="text-sm text-bluelight">Carregando serviços...</p>
             : error
               ? <p className="text-sm text-red-600">{error}</p>
               : !services.length
                 ? <p className="text-sm text-bluelight">
-                    Nenhum servico publicado por este prestador.
+                    Nenhum serviço publicado por este prestador.
                   </p>
                 : <div className="flex w-full flex-col gap-3">
                     {services.map((service) => (
@@ -190,22 +192,22 @@ function DashboardPrestadorContent() {
 
                         <div className="flex w-full flex-col gap-2 md:flex-row">
                           <button
-                            className="inline-flex h-10 items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:bg-greendark hover:text-white"
+                            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:scale-[1.01] hover:bg-greendark hover:text-white"
                             type="button"
                             onClick={() => setEditingService(service)}
                           >
                             Editar
                           </button>
-                          <button
-                            className="inline-flex h-10 items-center justify-center rounded-lg border border-red-500 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                          <ConfirmActionButton
+                            confirmLabel="Excluir serviço"
+                            description={`O serviço "${service.name}" sera removido permanentemente.`}
                             disabled={deletingServiceId === service.id}
-                            type="button"
-                            onClick={() => handleDelete(service.id)}
-                          >
-                            {deletingServiceId === service.id
-                              ? "Excluindo..."
-                              : "Excluir"}
-                          </button>
+                            isProcessing={deletingServiceId === service.id}
+                            onConfirm={() => handleDelete(service.id)}
+                            title="Excluir serviço?"
+                            tone="danger"
+                            triggerLabel="Excluir"
+                          />
                         </div>
                       </div>
                     ))}
@@ -246,7 +248,7 @@ function DashboardPrestadorContent() {
                         <div className="flex w-full flex-col gap-2 md:w-52">
                           <StatusBadge value={item.status} />
                           <select
-                            className="h-10 w-full rounded-lg border border-bluelight/30 bg-white px-3 text-sm text-bluedark outline-none focus:border-greendark"
+                            className="h-10 w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none focus:border-greendark"
                             disabled={updatingAppointmentId === item.id}
                             value={statusDrafts[item.id] || item.status}
                             onChange={(event) =>
@@ -262,7 +264,7 @@ function DashboardPrestadorContent() {
                             <option value="cancelado">cancelado</option>
                           </select>
                           <button
-                            className="inline-flex h-10 items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:bg-greendark hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:scale-[1.01] hover:bg-greendark hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                             disabled={
                               updatingAppointmentId === item.id ||
                               (statusDrafts[item.id] || item.status) ===
@@ -290,7 +292,7 @@ function DashboardPrestadorContent() {
 export default function DashboardPrestador() {
   return (
     <ContentConteiner
-      subtitle="Gestao de servicos, disponibilidade semanal e agenda do prestador."
+      subtitle="Gestao de serviços, disponibilidade semanal e agenda do prestador."
       title="Dashboard do prestador"
     >
       <RoleGuard

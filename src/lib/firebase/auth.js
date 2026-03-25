@@ -3,8 +3,27 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
+import { clearAdminSession } from "@/lib/adminAuth";
 import { auth } from "./client";
 import { buscarUsuarioPorId, criarDocumentoUsuario } from "./firestore/users";
+
+const authErrorMessages = {
+  "auth/email-already-in-use": "Este e-mail ja esta cadastrado.",
+  "auth/invalid-email": "Informe um e-mail valido.",
+  "auth/weak-password": "A senha precisa ter pelo menos 6 caracteres.",
+  "auth/user-not-found": "Email ou senha incorretos.",
+  "auth/wrong-password": "Email ou senha incorretos.",
+  "auth/invalid-credential": "Email ou senha incorretos.",
+  "auth/too-many-requests":
+    "Muitas tentativas de login. Tente novamente em alguns minutos.",
+  "auth/network-request-failed":
+    "Falha de conexao. Verifique sua internet e tente novamente.",
+};
+
+function getFirebaseAuthErrorMessage(error, fallbackMessage) {
+  const errorCode = error?.code;
+  return authErrorMessages[errorCode] || fallbackMessage;
+}
 
 export const cadastrarUsuario = async (nome, email, senha, perfil) => {
   try {
@@ -25,7 +44,13 @@ export const cadastrarUsuario = async (nome, email, senha, perfil) => {
     return { sucesso: true, user };
   } catch (erro) {
     console.error("Erro ao cadastrar usuario:", erro);
-    return { sucesso: false, erro: erro.message };
+    return {
+      sucesso: false,
+      erro: getFirebaseAuthErrorMessage(
+        erro,
+        "Nao foi possivel criar a conta no momento.",
+      ),
+    };
   }
 };
 
@@ -35,13 +60,22 @@ export const loginUsuario = async (email, senha) => {
     return { sucesso: true, user: userCredential.user };
   } catch (erro) {
     console.error("Erro ao fazer login:", erro);
-    return { sucesso: false, erro: "Email ou senha incorretos." };
+    return {
+      sucesso: false,
+      erro: getFirebaseAuthErrorMessage(
+        erro,
+        "Nao foi possivel fazer login no momento.",
+      ),
+    };
   }
 };
 
 export const logoutUsuario = async () => {
   try {
-    await signOut(auth);
+    if (auth.currentUser) {
+      await signOut(auth);
+    }
+    clearAdminSession();
     return { sucesso: true };
   } catch (erro) {
     console.error("Erro ao fazer logout:", erro);

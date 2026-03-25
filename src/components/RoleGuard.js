@@ -15,6 +15,7 @@ const defaultRedirectByRole = {
 export function RoleGuard({
   allowedRoles,
   children,
+  loginRedirectTo,
   redirectTo,
   unauthorizedMessage,
 }) {
@@ -27,14 +28,14 @@ export function RoleGuard({
     }
 
     if (!user) {
-      router.replace("/login");
+      router.replace(loginRedirectTo || "/login");
       return;
     }
 
     if (!allowedRoles.includes(user.perfil)) {
       router.replace(redirectTo || defaultRedirectByRole[user.perfil] || "/");
     }
-  }, [allowedRoles, loading, redirectTo, router, user]);
+  }, [allowedRoles, loading, loginRedirectTo, redirectTo, router, user]);
 
   if (loading) {
     return (

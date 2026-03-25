@@ -1,5 +1,5 @@
 export function fieldClassName() {
-  return "h-11 w-full rounded-lg border border-bluelight/30 bg-white text-sm text-bluedark outline-none transition focus:border-greendark";
+  return "h-11 w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none transition focus:border-greendark";
 }
 
 export function FormField({ label, htmlFor, children }) {

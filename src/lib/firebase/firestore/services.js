@@ -18,7 +18,12 @@ import { buscarUsuarioPorId } from "./users";
 
 const normalizeDuration = (duration) => {
   const parsedDuration = Number(duration);
-  return Number.isFinite(parsedDuration) ? parsedDuration : null;
+
+  if (!Number.isFinite(parsedDuration)) {
+    return null;
+  }
+
+  return Math.max(1, Math.round(parsedDuration));
 };
 
 const mapServico = (servico, prestador) => ({

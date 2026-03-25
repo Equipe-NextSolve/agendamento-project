@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { getLocalDateString } from "@/lib/date";
 
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => getLocalDateString();
 
 export const cadastroSchema = z.object({
   nome: z
@@ -36,7 +37,7 @@ export const providerServiceSchema = z
     nome: z
       .string()
       .trim()
-      .min(3, "Informe o nome do servico com pelo menos 3 caracteres."),
+      .min(3, "Informe o nome do serviço com pelo menos 3 caracteres."),
     duracao: z.coerce
       .number({
         invalid_type_error: "Informe a duracao em minutos.",
@@ -56,7 +57,7 @@ export const providerServiceSchema = z
   });
 
 export const agendamentoSchema = z.object({
-  serviceId: z.string().trim().min(1, "Selecione um servico."),
+  serviceId: z.string().trim().min(1, "Selecione um serviço."),
   date: z
     .string()
     .min(1, "Selecione uma data.")

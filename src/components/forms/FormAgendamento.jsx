@@ -12,6 +12,7 @@ import {
   getAvailabilityForDate,
   isDateAvailable,
 } from "@/lib/availability";
+import { getLocalDateString } from "@/lib/date";
 import { criarAgendamento } from "@/lib/firebase/firestore/agendamentos";
 import { listarServicosAtivos } from "@/lib/firebase/firestore/services";
 import { agendamentoSchema } from "@/lib/formSchemas";
@@ -39,6 +40,7 @@ export default function FormAgendamento() {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [services, setServices] = useState([]);
+  const [serviceSearch, setServiceSearch] = useState("");
   const [servicesError, setServicesError] = useState("");
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,7 +61,7 @@ export default function FormAgendamento() {
       if (!resultado.sucesso) {
         setServices([]);
         setServicesError(
-          resultado.erro || "Nao foi possivel carregar os servicos.",
+          resultado.erro || "Nao foi possivel carregar os serviços.",
         );
         setIsLoadingServices(false);
         return;
@@ -88,6 +90,22 @@ export default function FormAgendamento() {
     () => services.find((service) => service.id === values.serviceId) || null,
     [services, values.serviceId],
   );
+  const filteredServices = useMemo(() => {
+    const normalizedSearch = serviceSearch.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return [];
+    }
+
+    return services.filter((service) => {
+      const providerName = service.provider?.toLowerCase() || "";
+
+      return (
+        service.name.toLowerCase().includes(normalizedSearch) ||
+        providerName.includes(normalizedSearch)
+      );
+    });
+  }, [serviceSearch, services]);
 
   const selectedDayAvailability = useMemo(
     () => getAvailabilityForDate(selectedService?.availability, values.date),
@@ -105,6 +123,18 @@ export default function FormAgendamento() {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
+  const handleServiceSelect = (serviceId) => {
+    setValues((current) => ({ ...current, serviceId }));
+    setErrors((current) => ({ ...current, serviceId: undefined }));
+  };
+  const handleServiceClear = () => {
+    setValues((current) => ({ ...current, serviceId: "", time: "" }));
+    setErrors((current) => ({
+      ...current,
+      serviceId: undefined,
+      time: undefined,
+    }));
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -120,7 +150,7 @@ export default function FormAgendamento() {
     }
 
     if (!selectedService?.providerId) {
-      toast.error("Selecione um servico valido.");
+      toast.error("Selecione um serviço valido.");
       return;
     }
 
@@ -175,7 +205,7 @@ export default function FormAgendamento() {
   };
 
   if (isLoadingServices) {
-    return <p className="text-sm text-bluelight">Carregando servicos...</p>;
+    return <p className="text-sm text-bluelight">Carregando serviços...</p>;
   }
 
   if (servicesError) {
@@ -184,42 +214,79 @@ export default function FormAgendamento() {
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
-      <FormField htmlFor="service" label="Servico">
-        <select
+      <FormField htmlFor="service-search" label="Buscar serviço">
+        <input
           className={fieldClassName()}
-          id="service"
-          name="service"
-          value={values.serviceId}
-          onChange={(event) => handleChange("serviceId", event.target.value)}
-        >
-          <option disabled value="">
-            Selecione um servico
-          </option>
-          {services.map((service) => (
-            <option key={service.id} value={service.id}>
-              {service.name} - {service.provider}
-            </option>
-          ))}
-        </select>
+          id="service-search"
+          placeholder="Digite o nome do serviço ou prestador"
+          type="text"
+          value={serviceSearch}
+          onChange={(event) => setServiceSearch(event.target.value)}
+        />
+        {serviceSearch.trim() ? (
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-bluelight/20 bg-white">
+            {filteredServices.length ? (
+              filteredServices.map((service) => {
+                const isSelected = values.serviceId === service.id;
+
+                return (
+                  <button
+                    className={`flex w-full cursor-pointer flex-col gap-1 border-b border-bluelight/10 px-4 py-3 text-left transition last:border-b-0 ${
+                      isSelected ? "bg-greenlight/30" : "hover:bg-bluelight/5"
+                    }`}
+                    key={service.id}
+                    type="button"
+                    onClick={() => handleServiceSelect(service.id)}
+                  >
+                    <span className="text-sm font-semibold text-bluedark">
+                      {service.name}
+                    </span>
+                    <span className="text-sm text-bluelight">
+                      {service.provider}
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-4 py-3 text-sm text-bluelight">
+                Nenhum serviço encontrado.
+              </div>
+            )}
+          </div>
+        ) : null}
         <FieldError message={errors.serviceId?.[0]} />
       </FormField>
 
       {selectedService ? (
         <div className="rounded-lg border border-bluelight/20 bg-white p-3">
-          <p className="text-sm font-semibold text-bluedark">
-            {selectedService.name}
-          </p>
-          <p className="text-sm text-bluelight">{selectedService.provider}</p>
-          {selectedService.duration ? (
-            <p className="text-sm text-bluedark">
-              Duracao: {selectedService.duration} min
-            </p>
-          ) : null}
-          {selectedService.availabilitySummary ? (
-            <p className="text-sm text-bluedark">
-              Disponibilidade: {selectedService.availabilitySummary}
-            </p>
-          ) : null}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-1 flex-col gap-1">
+              <p className="text-sm font-semibold text-bluedark">
+                {selectedService.name}
+              </p>
+              <p className="text-sm text-bluelight">
+                {selectedService.provider}
+              </p>
+              {selectedService.duration ? (
+                <p className="text-sm text-bluedark">
+                  Duracao: {selectedService.duration} min
+                </p>
+              ) : null}
+              {selectedService.availabilitySummary ? (
+                <p className="text-sm text-bluedark">
+                  Disponibilidade: {selectedService.availabilitySummary}
+                </p>
+              ) : null}
+            </div>
+            <button
+              aria-label="Remover serviço selecionado"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-bluelight/20 text-sm font-semibold text-bluelight transition hover:bg-red-50 hover:text-red-600"
+              type="button"
+              onClick={handleServiceClear}
+            >
+              x
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -228,6 +295,7 @@ export default function FormAgendamento() {
           <input
             className={fieldClassName()}
             id="date"
+            min={getLocalDateString()}
             name="date"
             type="date"
             value={values.date}
@@ -278,7 +346,7 @@ export default function FormAgendamento() {
 
       <FormField htmlFor="notes" label="Observacoes">
         <textarea
-          className="w-full rounded-lg border border-bluelight/30 bg-white text-sm text-bluedark outline-none focus:border-greendark"
+          className="w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none focus:border-greendark"
           id="notes"
           name="notes"
           rows={4}

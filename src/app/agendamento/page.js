@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 export default function Agendamento() {
   return (
     <ContentConteiner
-      subtitle="Selecione servico, data e horario para concluir o agendamento."
+      subtitle="Selecione serviço, data e horario para concluir o agendamento."
       title="Novo agendamento"
     >
       <RoleGuard

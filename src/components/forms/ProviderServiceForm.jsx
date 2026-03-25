@@ -126,7 +126,7 @@ export default function ProviderServiceForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
-      <FormField htmlFor="service-name" label="Nome do servico">
+      <FormField htmlFor="service-name" label="Nome do serviço">
         <input
           className={fieldClassName()}
           id="service-name"
@@ -152,7 +152,7 @@ export default function ProviderServiceForm({
 
       <FormField htmlFor="service-description" label="Descricao">
         <textarea
-          className="w-full rounded-lg border border-bluelight/30 bg-white text-sm text-bluedark outline-none focus:border-greendark"
+          className="w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none focus:border-greendark"
           id="service-description"
           rows={4}
           value={values.descricao}
@@ -167,7 +167,7 @@ export default function ProviderServiceForm({
             Disponibilidade semanal
           </span>
           <span className="text-sm text-bluelight">
-            Configure os dias e horarios em que este servico fica disponivel.
+            Configure os dias e horarios em que este serviço fica disponivel.
           </span>
         </div>
 
@@ -243,13 +243,13 @@ export default function ProviderServiceForm({
           {isSubmitting
             ? "Salvando..."
             : isEditing
-              ? "Atualizar servico"
-              : "Salvar servico"}
+              ? "Atualizar serviço"
+              : "Salvar serviço"}
         </PrimaryButton>
 
         {isEditing ? (
           <button
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-bluelight/30 text-sm font-semibold text-bluedark transition hover:border-greendark hover:text-greendark"
+            className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border border-bluelight/30 text-sm font-semibold text-bluedark transition hover:bg-bluelight/5 hover:border-greendark hover:text-greendark"
             type="button"
             onClick={() => {
               setValues(initialValues);

@@ -48,7 +48,7 @@ export function Navbar() {
     }
 
     setIsMenuOpen(false);
-    router.replace("/login");
+    router.replace(profile === "admin" ? "/admin/login" : "/login");
   };
 
   const renderLink = (link) => {
@@ -102,7 +102,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden flex flex-col gap-1.5 p-2"
+            className="lg:hidden flex cursor-pointer flex-col gap-1.5 rounded-lg p-2 transition hover:bg-white/10"
             aria-label="Toggle menu"
           >
             <span
@@ -145,7 +145,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="rounded-2xl px-3 py-1 text-left text-sm font-medium text-white/90 transition hover:bg-red-400 hover:text-white"
+              className="cursor-pointer rounded-2xl px-3 py-1 text-left text-sm font-medium text-white/90 transition hover:bg-red-400 hover:text-white"
             >
               Sair
             </button>

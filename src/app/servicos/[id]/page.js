@@ -5,14 +5,17 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ContentConteiner } from "@/components/ContentConteiner";
 import { Card } from "@/components/ui/card";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getAvailabilityForDate, WEEK_DAYS } from "@/lib/availability";
+import { getLocalDateString } from "@/lib/date";
 import { listarHorariosOcupados } from "@/lib/firebase/firestore/agendamentos";
 import { buscarServicoPorId } from "@/lib/firebase/firestore/services";
 
-const today = new Date().toISOString().split("T")[0];
+const today = getLocalDateString();
 
 export default function DetalheServicoPrestador() {
   const params = useParams();
+  const { user } = useCurrentUser();
   const serviceId = Array.isArray(params.id) ? params.id[0] : params.id;
   const [service, setService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(today);
@@ -42,12 +45,12 @@ export default function DetalheServicoPrestador() {
 
       if (!resultado.sucesso) {
         setService(null);
-        setError(resultado.erro || "Nao foi possivel carregar o servico.");
+        setError(resultado.erro || "Nao foi possivel carregar o serviço.");
         setIsLoadingService(false);
         return;
       }
 
-      setService(resultado.servico);
+      setService(resultado.serviço);
       setIsLoadingService(false);
     };
 
@@ -98,11 +101,11 @@ export default function DetalheServicoPrestador() {
   if (isLoadingService) {
     return (
       <ContentConteiner
-        subtitle="Detalhes do servico, prestador e horarios disponiveis."
-        title="Carregando servico"
+        subtitle="Detalhes do serviço, prestador e horarios disponiveis."
+        title="Carregando serviço"
       >
         <Card>
-          <p className="text-sm text-bluelight">Carregando servico...</p>
+          <p className="text-sm text-bluelight">Carregando serviço...</p>
         </Card>
       </ContentConteiner>
     );
@@ -111,7 +114,7 @@ export default function DetalheServicoPrestador() {
   if (error || !service) {
     return (
       <ContentConteiner
-        subtitle="Detalhes do servico, prestador e horarios disponiveis."
+        subtitle="Detalhes do serviço, prestador e horarios disponiveis."
         title="Servico indisponivel"
       >
         <Card>
@@ -130,7 +133,7 @@ export default function DetalheServicoPrestador() {
 
   return (
     <ContentConteiner
-      subtitle="Detalhes do servico, prestador e horarios disponiveis."
+      subtitle="Detalhes do serviço, prestador e horarios disponiveis."
       title={service.name}
     >
       <Card>
@@ -187,7 +190,7 @@ export default function DetalheServicoPrestador() {
           <label className="flex w-full flex-col gap-2">
             <span className="text-sm font-medium">Selecionar data</span>
             <input
-              className="h-11 w-full rounded-lg border border-bluelight/30 bg-white text-sm text-bluedark outline-none focus:border-greendark"
+              className="h-11 w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none focus:border-greendark"
               min={today}
               type="date"
               value={selectedDate}
@@ -228,12 +231,14 @@ export default function DetalheServicoPrestador() {
                   Nenhum horario reservado nesta data.
                 </p>}
 
-          <Link
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-greendark text-sm font-semibold text-white md:w-60"
-            href={`/agendamento?serviceId=${service.id}`}
-          >
-            Agendar este servico
-          </Link>
+          {user?.perfil !== "admin"
+            ? <Link
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-greendark text-sm font-semibold text-white md:w-60"
+                href={`/agendamento?serviceId=${service.id}`}
+              >
+                Agendar este serviço
+              </Link>
+            : null}
         </div>
       </Card>
     </ContentConteiner>

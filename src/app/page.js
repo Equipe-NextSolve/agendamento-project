@@ -11,7 +11,7 @@ export default function Home() {
         <Card className="lg:flex-1">
           <h2 className="text-xl font-semibold">Cliente</h2>
           <p className="text-base text-bluelight">
-            Visualiza servicos, consulta horarios disponiveis e acompanha seus
+            Visualiza serviços, consulta horarios disponiveis e acompanha seus
             agendamentos.
           </p>
         </Card>
@@ -19,7 +19,7 @@ export default function Home() {
         <Card className="lg:flex-1">
           <h2 className="text-xl font-semibold">Prestador</h2>
           <p className="text-base text-bluelight">
-            Gerencia catalogo de servicos, disponibilidade semanal e agenda do
+            Gerencia catalogo de serviços, disponibilidade semanal e agenda do
             dia.
           </p>
         </Card>

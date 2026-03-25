@@ -204,7 +204,7 @@ function AppointmentList() {
               ? <div className="flex w-full flex-col gap-2 md:w-52">
                   <StatusBadge value={appointment.status} />
                   <select
-                    className="h-10 w-full rounded-lg border border-bluelight/30 bg-white px-3 text-sm text-bluedark outline-none focus:border-greendark"
+                    className="h-10 w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none focus:border-greendark"
                     disabled={updatingAppointmentId === appointment.id}
                     value={statusDrafts[appointment.id] || appointment.status}
                     onChange={(event) =>
@@ -220,7 +220,7 @@ function AppointmentList() {
                     <option value="cancelado">cancelado</option>
                   </select>
                   <button
-                    className="inline-flex h-10 items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:bg-greendark hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-10 cursor-pointer items-center justify-center rounded-lg border border-greendark px-4 text-sm font-semibold text-greendark transition hover:scale-[1.01] hover:bg-greendark hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={
                       updatingAppointmentId === appointment.id ||
                       (statusDrafts[appointment.id] || appointment.status) ===

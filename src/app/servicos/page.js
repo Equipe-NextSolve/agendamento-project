@@ -46,7 +46,7 @@ export default function ListagemServicos() {
 
       if (!resultado.sucesso) {
         setServices([]);
-        setError(resultado.erro || "Nao foi possivel carregar os servicos.");
+        setError(resultado.erro || "Nao foi possivel carregar os serviços.");
         setIsLoading(false);
         return;
       }
@@ -83,7 +83,7 @@ export default function ListagemServicos() {
   if (isLoadingUser || user?.perfil === "prestador") {
     return (
       <ContentConteiner
-        subtitle="Catalogo de servicos e prestadores disponiveis."
+        subtitle="Catalogo de serviços e prestadores disponiveis."
         title="Servicos"
       >
         <Card>
@@ -95,16 +95,16 @@ export default function ListagemServicos() {
 
   return (
     <ContentConteiner
-      subtitle="Catalogo de servicos e prestadores disponiveis."
+      subtitle="Catalogo de serviços e prestadores disponiveis."
       title="Servicos"
     >
       <Card>
         <div className="flex w-full flex-col gap-3 md:flex-row">
           <label className="flex flex-1 flex-col gap-2">
-            <span className="text-sm font-medium">Buscar servico</span>
+            <span className="text-sm font-medium">Buscar serviço</span>
             <input
-              className="h-11 w-full rounded-lg border border-bluelight/30 bg-white text-sm text-bluedark outline-none focus:border-greendark"
-              placeholder="Digite o servico"
+              className="h-11 w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none focus:border-greendark"
+              placeholder="Digite o serviço"
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -113,7 +113,7 @@ export default function ListagemServicos() {
           <label className="flex flex-1 flex-col gap-2">
             <span className="text-sm font-medium">Filtrar por prestador</span>
             <input
-              className="h-11 w-full rounded-lg border border-bluelight/30 bg-white text-sm text-bluedark outline-none focus:border-greendark"
+              className="h-11 w-full rounded-lg border border-bluelight/30 bg-white p-2 text-sm text-bluedark outline-none focus:border-greendark"
               placeholder="Digite o prestador"
               type="text"
               value={providerFilter}
@@ -125,7 +125,7 @@ export default function ListagemServicos() {
 
       {isLoading
         ? <Card>
-            <p className="text-sm text-bluelight">Carregando servicos...</p>
+            <p className="text-sm text-bluelight">Carregando serviços...</p>
           </Card>
         : error
           ? <Card>
@@ -134,7 +134,7 @@ export default function ListagemServicos() {
           : !filteredServices.length
             ? <Card>
                 <p className="text-sm text-bluelight">
-                  Nenhum servico encontrado com os filtros atuais.
+                  Nenhum serviço encontrado com os filtros atuais.
                 </p>
               </Card>
             : <div className="flex w-full flex-col gap-4">
