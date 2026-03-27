@@ -1,36 +1,239 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Pet Scheduler
 
-## Getting Started
+Aplicacao web de agendamento de servicos para pets, com fluxos separados para clientes, prestadores e administrador.
 
-First, run the development server:
+O projeto foi construido com Next.js, Firebase Authentication, Cloud Firestore, Tailwind CSS e validacao com Zod.
+
+## Visao geral
+
+O sistema permite:
+
+- cadastro e login de clientes e prestadores
+- login administrativo separado
+- publicacao, edicao e exclusao de servicos por prestadores
+- configuracao de disponibilidade semanal por servico
+- agendamento com validacao de disponibilidade e conflito de horario
+- listagem de agendamentos por cliente e por prestador
+- alteracao de status do agendamento pelo prestador
+- painel administrativo com filtros de agendamentos e remocao de prestadores
+
+## Tecnologias
+
+- Next.js 16
+- React 19
+- Firebase Auth
+- Cloud Firestore
+- Zod
+- React Toastify
+- Tailwind CSS 4
+- Biome
+- bcryptjs
+- JWT
+
+## Perfis
+
+### Cliente
+
+- pode se cadastrar e fazer login
+- pode navegar pelos servicos publicados
+- pode agendar um servico
+- pode acompanhar seus agendamentos em `/meus-agendamentos`
+
+### Prestador
+
+- pode se cadastrar e fazer login
+- pode acessar `/dashboard-prestador`
+- pode criar, editar e excluir servicos
+- pode configurar dias e horarios disponiveis
+- pode visualizar sua agenda
+- pode atualizar o status dos agendamentos marcados com ele
+
+### Admin
+
+- possui login proprio em `/admin/login`
+- acessa `/admin`
+- pode filtrar agendamentos por status e data
+- pode visualizar prestadores cadastrados
+- pode deletar prestadores e os dados vinculados a eles no Firestore
+
+## Rotas principais
+
+- `/` - pagina inicial
+- `/cadastro` - cadastro de cliente ou prestador
+- `/login` - login de cliente ou prestador
+- `/servicos` - catalogo publico de servicos
+- `/servicos/[id]` - detalhe do servico
+- `/agendamento` - criacao de agendamento
+- `/meus-agendamentos` - area do cliente e do prestador
+- `/dashboard-prestador` - painel do prestador
+- `/admin/login` - login administrativo
+- `/admin` - painel administrativo
+
+## Regras de negocio importantes
+
+- o prestador nao acessa `/servicos`
+- visitante nao ve o link de servicos no navbar
+- o admin nao pode agendar servicos
+- o agendamento so eh criado se:
+  - a data estiver dentro da disponibilidade do prestador
+  - o intervalo completo do servico couber no horario configurado
+  - nao houver conflito com outro agendamento ativo no mesmo intervalo
+- agendamentos com status `cancelado` nao bloqueiam horarios
+
+## Estrutura de dados no Firebase
+
+### Colecoes usadas
+
+#### `usuarios`
+
+Documento salvo com o `uid` do Firebase Auth:
+
+```json
+{
+  "nome": "Nome do usuario",
+  "email": "email@exemplo.com",
+  "perfil": "cliente | prestador",
+  "criadoEm": "Date"
+}
+```
+
+#### `servicos`
+
+```json
+{
+  "prestadorId": "uid-do-prestador",
+  "nome": "Banho",
+  "duracaoMinutos": 60,
+  "descricao": "Descricao do servico",
+  "disponibilidade": [
+    {
+      "day": "monday",
+      "enabled": true,
+      "start": "09:00",
+      "end": "18:00"
+    }
+  ],
+  "ativo": true
+}
+```
+
+#### `agendamentos`
+
+```json
+{
+  "clienteId": "uid-do-cliente",
+  "prestadorId": "uid-do-prestador",
+  "servicoId": "id-do-servico",
+  "data": "2026-03-27",
+  "horario": "10:00",
+  "duracaoMinutos": 60,
+  "pet": "Nome do pet",
+  "observacoes": "Texto opcional",
+  "status": "confirmado",
+  "criadoEm": "Date"
+}
+```
+
+#### `configuracoes/admin_login`
+
+Documento usado no login administrativo:
+
+```json
+{
+  "email": "admin@exemplo.com",
+  "senha": "hash-bcrypt",
+  "nome": "Administrador"
+}
+```
+
+## Variaveis de ambiente
+
+Crie um arquivo `.env.local` com os valores do seu projeto Firebase:
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_ADMIN_JWT_SECRET=
+```
+
+## Como rodar
+
+Instale as dependencias:
+
+```bash
+npm install
+```
+
+Inicie em desenvolvimento:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+- `npm run dev` - sobe o ambiente de desenvolvimento
+- `npm run build` - gera build de producao
+- `npm run start` - sobe a aplicacao em producao
+- `npm run lint` - executa `biome check`
+- `npm run format` - executa `biome format --write`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Estrutura do projeto
 
-## Learn More
+```text
+src/
+  app/
+    admin/
+    agendamento/
+    cadastro/
+    dashboard-prestador/
+    login/
+    meus-agendamentos/
+    servicos/
+  components/
+    forms/
+    ui/
+  hooks/
+  lib/
+    firebase/
+      firestore/
+    utils/
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Camada Firebase
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+A organizacao do Firebase esta concentrada em `src/lib/firebase`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `client.js` - inicializacao do Firebase client
+- `auth.js` - cadastro, login, logout e leitura do usuario atual
+- `firestore/users.js` - operacoes relacionadas a usuarios
+- `firestore/services.js` - operacoes relacionadas a servicos
+- `firestore/agendamentos.js` - operacoes relacionadas a agendamentos
+- `firestore/admin.js` - login administrativo
 
-## Deploy on Vercel
+## Utilitario para senha do admin
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Existe um utilitario em `src/lib/utils/hashAdminPassword.js` para gerar o hash bcrypt da senha que sera salva em `configuracoes/admin_login`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Exemplo:
+
+```bash
+node src/lib/utils/hashAdminPassword.js
+```
+
+Depois disso, salve o hash retornado no Firestore.
+
+## Observacoes
+
+- a exclusao de prestador remove o documento do usuario, os servicos vinculados e os agendamentos vinculados no Firestore
+- essa exclusao nao remove automaticamente a conta do Firebase Auth
+- a sessao do admin eh mantida em cookie com JWT no client
+- os formularios usam Zod para validacao
+
+## Autor
+
+Projeto desenvolvido por Lucas Joao.
