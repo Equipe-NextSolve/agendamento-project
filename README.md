@@ -236,4 +236,4 @@ Depois disso, salve o hash retornado no Firestore.
 
 ## Autor
 
-Projeto desenvolvido por Lucas Joao.
+Projeto desenvolvido por [DevLDRC](https://github.com/Equipe-NextSolve/agendamento-project/commits?author=DevLDRC) e [JoaoGui1430](https://github.com/Equipe-NextSolve/agendamento-project/commits?author=JoaoGui1430).
