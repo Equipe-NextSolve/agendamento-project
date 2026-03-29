@@ -51,6 +51,17 @@ export default function LoginForm() {
       toast.success("Login realizado com sucesso.");
       setValues(initialValues);
       setErrors({});
+
+      if (resultado.usuario?.perfil === "cliente") {
+        router.push("/meus-agendamentos");
+        return;
+      }
+
+      if (resultado.usuario?.perfil === "prestador") {
+        router.push("/dashboard-prestador");
+        return;
+      }
+
       router.push("/");
       return;
     }

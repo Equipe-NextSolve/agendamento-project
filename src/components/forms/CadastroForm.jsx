@@ -60,7 +60,13 @@ export default function CadastroForm() {
       toast.success("Conta criada com sucesso.");
       setValues(initialValues);
       setErrors({});
-      router.push("/login");
+      if (parsed.data.perfil === "cliente") {
+        router.push("/meus-agendamentos");
+        return;
+      } else if (parsed.data.perfil === "prestador") {
+        router.push("/dashboard-prestador");
+        return;
+      }
       return;
     }
 

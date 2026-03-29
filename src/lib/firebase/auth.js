@@ -57,7 +57,17 @@ export const cadastrarUsuario = async (nome, email, senha, perfil) => {
 export const loginUsuario = async (email, senha) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-    return { sucesso: true, user: userCredential.user };
+    const usuario = await buscarUsuarioPorId(userCredential.user.uid);
+
+    if (!usuario?.perfil) {
+      await signOut(auth);
+      return {
+        sucesso: false,
+        erro: "Nao foi possivel identificar o perfil desta conta.",
+      };
+    }
+
+    return { sucesso: true, user: userCredential.user, usuario };
   } catch (erro) {
     console.error("Erro ao fazer login:", erro);
     return {

@@ -5,10 +5,12 @@ import { toast } from "react-toastify";
 import { ContentConteiner } from "@/components/ContentConteiner";
 import { RoleGuard } from "@/components/RoleGuard";
 import { Card } from "@/components/ui/card";
+import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
   atualizarStatusAgendamentoPrestador,
+  cancelarAgendamentoCliente,
   listarAgendamentosPorUsuario,
 } from "@/lib/firebase/firestore/agendamentos";
 
@@ -33,6 +35,7 @@ function AppointmentList() {
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
   const [statusDrafts, setStatusDrafts] = useState({});
   const [updatingAppointmentId, setUpdatingAppointmentId] = useState("");
+  const [cancelingAppointmentId, setCancelingAppointmentId] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -81,46 +84,6 @@ function AppointmentList() {
       isMounted = false;
     };
   }, [loading, user]);
-
-  if (loading || isLoadingAppointments) {
-    return (
-      <Card>
-        <p className="text-sm text-bluelight">Carregando agendamentos...</p>
-      </Card>
-    );
-  }
-
-  if (!user || !copyByRole[user.perfil]) {
-    return (
-      <Card>
-        <p className="text-sm text-bluelight">
-          Seu perfil nao possui acesso a esta area.
-        </p>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <p className="text-sm text-red-600">{error}</p>
-      </Card>
-    );
-  }
-
-  if (!appointments.length) {
-    return (
-      <Card>
-        <p className="text-sm text-bluelight">
-          {copyByRole[user.perfil].empty}
-        </p>
-      </Card>
-    );
-  }
-
-  const counterpartField =
-    user.perfil === "prestador" ? "customer" : "provider";
-  const isProviderView = user.perfil === "prestador";
 
   const reloadAppointments = async () => {
     if (!user?.id || !copyByRole[user.perfil]) {
@@ -182,6 +145,67 @@ function AppointmentList() {
     reloadAppointments();
   };
 
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!user?.id) {
+      toast.error("Sua sessao expirou. Faca login novamente.");
+      return;
+    }
+
+    setCancelingAppointmentId(appointmentId);
+
+    const resultado = await cancelarAgendamentoCliente(appointmentId, user.id);
+
+    setCancelingAppointmentId("");
+
+    if (!resultado.sucesso) {
+      toast.error(`Erro ao cancelar agendamento: ${resultado.erro}`);
+      return;
+    }
+
+    toast.success("Agendamento cancelado com sucesso.");
+    reloadAppointments();
+  };
+
+  if (loading || isLoadingAppointments) {
+    return (
+      <Card>
+        <p className="text-sm text-bluelight">Carregando agendamentos...</p>
+      </Card>
+    );
+  }
+
+  if (!user || !copyByRole[user.perfil]) {
+    return (
+      <Card>
+        <p className="text-sm text-bluelight">
+          Seu perfil nao possui acesso a esta area.
+        </p>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <p className="text-sm text-red-600">{error}</p>
+      </Card>
+    );
+  }
+
+  if (!appointments.length) {
+    return (
+      <Card>
+        <p className="text-sm text-bluelight">
+          {copyByRole[user.perfil].empty}
+        </p>
+      </Card>
+    );
+  }
+
+  const counterpartField =
+    user.perfil === "prestador" ? "customer" : "provider";
+  const isProviderView = user.perfil === "prestador";
+
   return (
     <div className="flex w-full flex-col gap-4">
       {appointments.map((appointment) => (
@@ -200,6 +224,7 @@ function AppointmentList() {
                 Codigo: {appointment.id}
               </span>
             </div>
+
             {isProviderView
               ? <div className="flex w-full flex-col gap-2 md:w-52">
                   <StatusBadge value={appointment.status} />
@@ -236,7 +261,23 @@ function AppointmentList() {
                       : "Salvar status"}
                   </button>
                 </div>
-              : <StatusBadge value={appointment.status} />}
+              : <div className="flex w-full flex-col gap-2 md:w-52">
+                  <StatusBadge value={appointment.status} />
+                  {["confirmado", "pendente"].includes(appointment.status)
+                    ? <ConfirmActionButton
+                        confirmLabel="Cancelar agendamento"
+                        description="Essa acao vai desmarcar o horario e liberar a agenda do prestador."
+                        disabled={cancelingAppointmentId === appointment.id}
+                        isProcessing={cancelingAppointmentId === appointment.id}
+                        onConfirm={() =>
+                          handleCancelAppointment(appointment.id)
+                        }
+                        title="Cancelar agendamento?"
+                        tone="danger"
+                        triggerLabel="Cancelar"
+                      />
+                    : null}
+                </div>}
           </div>
         </Card>
       ))}

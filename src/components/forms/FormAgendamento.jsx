@@ -12,7 +12,7 @@ import {
   getAvailabilityForDate,
   isDateAvailable,
 } from "@/lib/availability";
-import { getLocalDateString } from "@/lib/date";
+import { getLocalDateString, isDateTimeInPast } from "@/lib/date";
 import { criarAgendamento } from "@/lib/firebase/firestore/agendamentos";
 import { listarServicosAtivos } from "@/lib/firebase/firestore/services";
 import { agendamentoSchema } from "@/lib/formSchemas";
@@ -61,7 +61,7 @@ export default function FormAgendamento() {
       if (!resultado.sucesso) {
         setServices([]);
         setServicesError(
-          resultado.erro || "Nao foi possivel carregar os serviços.",
+          resultado.erro || "Nao foi possivel carregar os servicos.",
         );
         setIsLoadingServices(false);
         return;
@@ -90,6 +90,7 @@ export default function FormAgendamento() {
     () => services.find((service) => service.id === values.serviceId) || null,
     [services, values.serviceId],
   );
+
   const filteredServices = useMemo(() => {
     const normalizedSearch = serviceSearch.trim().toLowerCase();
 
@@ -111,6 +112,7 @@ export default function FormAgendamento() {
     () => getAvailabilityForDate(selectedService?.availability, values.date),
     [selectedService?.availability, values.date],
   );
+
   const appointmentEndTime = useMemo(() => {
     if (!selectedService?.duration || !values.time) {
       return "";
@@ -123,10 +125,12 @@ export default function FormAgendamento() {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
   };
+
   const handleServiceSelect = (serviceId) => {
     setValues((current) => ({ ...current, serviceId }));
     setErrors((current) => ({ ...current, serviceId: undefined }));
   };
+
   const handleServiceClear = () => {
     setValues((current) => ({ ...current, serviceId: "", time: "" }));
     setErrors((current) => ({
@@ -150,12 +154,17 @@ export default function FormAgendamento() {
     }
 
     if (!selectedService?.providerId) {
-      toast.error("Selecione um serviço valido.");
+      toast.error("Selecione um servico valido.");
       return;
     }
 
     if (!isDateAvailable(selectedService.availability, values.date)) {
       toast.error("O prestador nao atende na data selecionada.");
+      return;
+    }
+
+    if (isDateTimeInPast(values.date, values.time)) {
+      toast.error("Nao e possivel agendar para um horario que ja passou.");
       return;
     }
 
@@ -205,7 +214,7 @@ export default function FormAgendamento() {
   };
 
   if (isLoadingServices) {
-    return <p className="text-sm text-bluelight">Carregando serviços...</p>;
+    return <p className="text-sm text-bluelight">Carregando servicos...</p>;
   }
 
   if (servicesError) {
@@ -213,12 +222,12 @@ export default function FormAgendamento() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
-      <FormField htmlFor="service-search" label="Buscar serviço">
+    <form className="flex w-full flex-col gap-4" onSubmit={handleSubmit}>
+      <FormField htmlFor="service-search" label="Buscar servico">
         <input
           className={fieldClassName()}
           id="service-search"
-          placeholder="Digite o nome do serviço ou prestador"
+          placeholder="Digite o nome do servico ou prestador"
           type="text"
           value={serviceSearch}
           onChange={(event) => setServiceSearch(event.target.value)}
@@ -249,7 +258,7 @@ export default function FormAgendamento() {
               })
             ) : (
               <div className="px-4 py-3 text-sm text-bluelight">
-                Nenhum serviço encontrado.
+                Nenhum servico encontrado.
               </div>
             )}
           </div>
@@ -279,7 +288,7 @@ export default function FormAgendamento() {
               ) : null}
             </div>
             <button
-              aria-label="Remover serviço selecionado"
+              aria-label="Remover servico selecionado"
               className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-bluelight/20 text-sm font-semibold text-bluelight transition hover:bg-red-50 hover:text-red-600"
               type="button"
               onClick={handleServiceClear}
@@ -323,7 +332,7 @@ export default function FormAgendamento() {
         <div className="flex flex-col gap-1 text-sm text-bluelight">
           <p>
             {selectedDayAvailability?.enabled
-              ? `Horario disponivel neste dia: ${selectedDayAvailability.start} - ${selectedDayAvailability.end}`
+              ? `Horario configurado neste dia: ${selectedDayAvailability.start} - ${selectedDayAvailability.end}`
               : "O prestador nao atende no dia selecionado."}
           </p>
           {appointmentEndTime ? (

@@ -130,6 +130,104 @@ export function addMinutesToTime(timeString, durationInMinutes) {
   return minutesToTime(startMinutes + durationInMinutes);
 }
 
+export function timeRangesOverlap(
+  startATime,
+  durationAMinutes,
+  startBTime,
+  durationBMinutes,
+) {
+  const startA = timeToMinutes(startATime);
+  const startB = timeToMinutes(startBTime);
+
+  if (
+    startA === null ||
+    startB === null ||
+    !Number.isFinite(durationAMinutes) ||
+    !Number.isFinite(durationBMinutes)
+  ) {
+    return false;
+  }
+
+  const endA = startA + durationAMinutes;
+  const endB = startB + durationBMinutes;
+
+  return startA < endB && endA > startB;
+}
+
+function roundMinutesUp(totalMinutes, stepInMinutes) {
+  if (!Number.isFinite(totalMinutes) || !Number.isFinite(stepInMinutes)) {
+    return null;
+  }
+
+  const remainder = totalMinutes % stepInMinutes;
+
+  if (remainder === 0) {
+    return totalMinutes;
+  }
+
+  return totalMinutes + stepInMinutes - remainder;
+}
+
+export function generateAvailableTimeSlots({
+  availability,
+  dateString,
+  durationInMinutes,
+  occupiedIntervals = [],
+  minimumStartTime = "",
+  stepInMinutes = 5,
+}) {
+  const entry = getAvailabilityForDate(availability, dateString);
+  const availabilityStart = timeToMinutes(entry?.start);
+  const availabilityEnd = timeToMinutes(entry?.end);
+  const minimumStartMinutes = minimumStartTime
+    ? timeToMinutes(minimumStartTime)
+    : null;
+
+  if (
+    !entry?.enabled ||
+    availabilityStart === null ||
+    availabilityEnd === null ||
+    !Number.isFinite(durationInMinutes) ||
+    durationInMinutes <= 0
+  ) {
+    return [];
+  }
+
+  const earliestStart = roundMinutesUp(
+    Math.max(availabilityStart, minimumStartMinutes ?? availabilityStart),
+    stepInMinutes,
+  );
+  const latestStart = availabilityEnd - durationInMinutes;
+
+  if (earliestStart === null || earliestStart > latestStart) {
+    return [];
+  }
+
+  const slots = [];
+
+  for (
+    let currentMinutes = earliestStart;
+    currentMinutes <= latestStart;
+    currentMinutes += stepInMinutes
+  ) {
+    const currentTime = minutesToTime(currentMinutes);
+    const hasConflict = occupiedIntervals.some((interval) =>
+      timeRangesOverlap(
+        currentTime,
+        durationInMinutes,
+        interval.time,
+        interval.durationMinutos,
+      ),
+    );
+
+    if (!hasConflict) {
+      slots.push(currentTime);
+    }
+  }
+
+  return slots;
+}
+
 export function doesTimeRangeFitAvailability(
   availability,
   dateString,

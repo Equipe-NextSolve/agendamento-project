@@ -12,6 +12,7 @@ import {
   doesTimeRangeFitAvailability,
   timeToMinutes,
 } from "@/lib/availability";
+import { isDateTimeInPast } from "@/lib/date";
 import { db } from "../client";
 import { buscarServicoDocumentoPorId } from "./services";
 import { buscarUsuarioPorId } from "./users";
@@ -108,6 +109,13 @@ export const criarAgendamento = async (
 
     if (!servico || !Number.isFinite(duracaoMinutos) || duracaoMinutos <= 0) {
       return { sucesso: false, erro: "Servico invalido para agendamento." };
+    }
+
+    if (isDateTimeInPast(data, horario)) {
+      return {
+        sucesso: false,
+        erro: "Nao e possivel agendar para um horario que ja passou.",
+      };
     }
 
     if (
@@ -277,6 +285,45 @@ export const listarHorariosOcupados = async (prestadorId, data) => {
   }
 };
 
+export const listarIntervalosOcupados = async (prestadorId, data) => {
+  if (!prestadorId || !data) {
+    return { sucesso: false, erro: "Parametros invalidos para consulta." };
+  }
+
+  try {
+    const agendaQuery = query(
+      collection(db, "agendamentos"),
+      where("prestadorId", "==", prestadorId),
+      where("data", "==", data),
+    );
+
+    const querySnapshot = await getDocs(agendaQuery);
+
+    const intervalos = await Promise.all(
+      querySnapshot.docs.map(async (agendamentoDoc) => {
+        const agendamento = agendamentoDoc.data();
+
+        return {
+          id: agendamentoDoc.id,
+          status: agendamento.status,
+          time: agendamento.horario,
+          durationMinutos: await getAppointmentDuration(agendamento),
+        };
+      }),
+    );
+
+    return {
+      sucesso: true,
+      intervalos: intervalos
+        .filter((intervalo) => intervalo.status !== "cancelado")
+        .sort((a, b) => a.time.localeCompare(b.time)),
+    };
+  } catch (erro) {
+    console.error("Erro ao listar intervalos ocupados:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+};
+
 export const listarTodosAgendamentos = async (filters = {}) => {
   try {
     const querySnapshot = await getDocs(collection(db, "agendamentos"));
@@ -352,6 +399,48 @@ export const atualizarStatusAgendamentoPrestador = async (
     return { sucesso: true };
   } catch (erro) {
     console.error("Erro ao atualizar status do agendamento:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+};
+
+export const cancelarAgendamentoCliente = async (agendamentoId, clienteId) => {
+  if (!agendamentoId || !clienteId) {
+    return { sucesso: false, erro: "Agendamento invalido." };
+  }
+
+  try {
+    const agendamentoRef = doc(db, "agendamentos", agendamentoId);
+    const agendamentoSnap = await getDoc(agendamentoRef);
+
+    if (!agendamentoSnap.exists()) {
+      return { sucesso: false, erro: "Agendamento nao encontrado." };
+    }
+
+    const agendamento = agendamentoSnap.data();
+
+    if (agendamento.clienteId !== clienteId) {
+      return {
+        sucesso: false,
+        erro: "Voce nao pode cancelar este agendamento.",
+      };
+    }
+
+    if (agendamento.status === "cancelado") {
+      return { sucesso: false, erro: "Este agendamento ja foi cancelado." };
+    }
+
+    if (agendamento.status === "concluido") {
+      return {
+        sucesso: false,
+        erro: "Nao e possivel cancelar um agendamento concluido.",
+      };
+    }
+
+    await updateDoc(agendamentoRef, { status: "cancelado" });
+
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao cancelar agendamento do cliente:", erro);
     return { sucesso: false, erro: erro.message };
   }
 };

@@ -45,12 +45,12 @@ export default function DetalheServicoPrestador() {
 
       if (!resultado.sucesso) {
         setService(null);
-        setError(resultado.erro || "Nao foi possivel carregar o serviço.");
+        setError(resultado.erro || "Nao foi possivel carregar o servico.");
         setIsLoadingService(false);
         return;
       }
 
-      setService(resultado.serviço);
+      setService(resultado.servico);
       setIsLoadingService(false);
     };
 
@@ -101,11 +101,11 @@ export default function DetalheServicoPrestador() {
   if (isLoadingService) {
     return (
       <ContentConteiner
-        subtitle="Detalhes do serviço, prestador e horarios disponiveis."
-        title="Carregando serviço"
+        subtitle="Detalhes do servico, prestador e horarios disponiveis."
+        title="Carregando servico"
       >
         <Card>
-          <p className="text-sm text-bluelight">Carregando serviço...</p>
+          <p className="text-sm text-bluelight">Carregando servico...</p>
         </Card>
       </ContentConteiner>
     );
@@ -114,7 +114,7 @@ export default function DetalheServicoPrestador() {
   if (error || !service) {
     return (
       <ContentConteiner
-        subtitle="Detalhes do serviço, prestador e horarios disponiveis."
+        subtitle="Detalhes do servico, prestador e horarios disponiveis."
         title="Servico indisponivel"
       >
         <Card>
@@ -133,7 +133,7 @@ export default function DetalheServicoPrestador() {
 
   return (
     <ContentConteiner
-      subtitle="Detalhes do serviço, prestador e horarios disponiveis."
+      subtitle="Detalhes do servico, prestador e horarios disponiveis."
       title={service.name}
     >
       <Card>
@@ -233,10 +233,10 @@ export default function DetalheServicoPrestador() {
 
           {user?.perfil !== "admin"
             ? <Link
-                className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-greendark text-sm font-semibold text-white md:w-60"
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-greendark text-sm font-semibold text-white lg:w-60"
                 href={`/agendamento?serviceId=${service.id}`}
               >
-                Agendar este serviço
+                Agendar este servico
               </Link>
             : null}
         </div>
