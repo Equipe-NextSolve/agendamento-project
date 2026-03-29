@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { FormField, fieldClassName } from "@/components/ui/form-field";
@@ -34,6 +34,7 @@ function FieldError({ message }) {
 }
 
 export default function FormAgendamento() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const serviceIdFromQuery = searchParams.get("serviceId") || "";
   const { user, loading } = useCurrentUser();
@@ -211,6 +212,7 @@ export default function FormAgendamento() {
     toast.success("Agendamento criado com sucesso.");
     setValues(initialValues);
     setErrors({});
+    router.push("/meus-agendamentos");
   };
 
   if (isLoadingServices) {
